@@ -1,7 +1,23 @@
 package com.leboncoin.api.models
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
+import com.leboncoin.api.serialization.PropertyListingSerializer
+
+@Serializable(with = PropertyListingSerializer::class)
+data class PropertyListing(
+    val listingId: String,
+    val listingType: String?,
+    val name: String,
+    val title: String,
+    val averageRating: String,
+    val discountedPrice: String,
+    val originalPrice: String,
+    val totalPrice: String,
+    val picture: String,
+    val website: String,
+    val price: Double,
+    val listingUrl: String?
+)
 
 @Serializable
 data class PropertySearchRequest(
@@ -24,39 +40,22 @@ data class DateInfo(
 data class GuestInfo(
     val adults: Int,
     val children: Int = 0,
-    val pets: Int = 0,
-    val childrenAges: List<Int> = emptyList()
+    val pets: Int = 0
 )
 
 @Serializable
 data class ScrapingResponse(
-    val message: String = "Scraping completed successfully",
+    val message: String,
     val results: CombinedResults
 )
 
 @Serializable
 data class CombinedResults(
-    val airbnb: Map<String, PropertyListing?>,
-    val booking: Map<String, PropertyListing?>
+    val airbnb: PropertyResult,
+    val booking: PropertyResult
 )
 
 @Serializable
 data class PropertyResult(
     val cheapest: PropertyListing?
-)
-
-@Serializable
-data class PropertyListing(
-    @SerialName("Listing ID") val listingId: String,
-    @SerialName("Listing Type") val listingType: String? = null,
-    @SerialName("Name") val name: String,
-    @SerialName("Title") val title: String,
-    @SerialName("Average Rating") val averageRating: String,
-    @SerialName("Discounted Price") val discountedPrice: String = "",
-    @SerialName("Original Price") val originalPrice: String = "",
-    @SerialName("Total Price") val totalPrice: String,
-    @SerialName("Picture") val picture: String,
-    @SerialName("Website") val website: String,
-    @SerialName("Price") val price: Double,
-    @SerialName("Listing URL") val listingUrl: String? = null
 )

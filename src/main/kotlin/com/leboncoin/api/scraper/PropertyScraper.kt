@@ -11,8 +11,8 @@ class PropertyScraper(private val client: HttpClient) {
         return ScrapingResponse(
             message = "Scraping completed successfully",
             results = CombinedResults(
-                airbnb = airbnbResults,
-                booking = mapOf("cheapest" to null)
+                airbnb = PropertyResult(cheapest = airbnbResults["cheapest"]),
+                booking = PropertyResult(cheapest = null)
             )
         )
     }
