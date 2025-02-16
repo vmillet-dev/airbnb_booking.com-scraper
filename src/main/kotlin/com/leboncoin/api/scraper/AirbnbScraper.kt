@@ -92,11 +92,6 @@ class AirbnbScraper(private val client: HttpClient) {
                 HEADERS.forEach { (key, value) ->
                     headers.append(key, value)
                 }
-                timeout {
-                    requestTimeoutMillis = 10000
-                    connectTimeoutMillis = 10000
-                    socketTimeoutMillis = 10000
-                }
             }.bodyAsText()
         } catch (e: Exception) {
             when (e) {
