@@ -253,7 +253,53 @@ class AirbnbScraper(private val client: HttpClient) {
     }
     
     private fun parsePrice(priceStr: String?): Double {
-        TODO("Not yet implemented")
+        if (priceStr.isNullOrEmpty()) return Double.POSITIVE_INFINITY
+        
+        return try {
+            // Remove all non-digit characters except commas and periods
+            val cleanStr = priceStr.replace(Regex("[^\\d.,]"), "")
+            if (cleanStr.isEmpty()) return Double.POSITIVE_INFINITY
+            
+            when {
+                // Handle European format with comma as decimal (e.g., "1.234,56")
+                cleanStr.contains(",") && cleanStr.contains(".") -> {
+                    if (cleanStr.indexOf(",") > cleanStr.indexOf(".")) {
+                        // European format (e.g., "1.234,56" -> 1234.56)
+                        cleanStr.replace(".", "").replace(",", ".").toDouble()
+                    } else {
+                        // US format with thousands separator (e.g., "1,234.56")
+                        cleanStr.replace(",", "").toDouble()
+                    }
+                }
+                // Handle comma as decimal separator
+                cleanStr.contains(",") -> {
+                    val parts = cleanStr.split(",")
+                    if (parts.size == 2 && parts[1].all { it.isDigit() }) {
+                        // Comma as decimal separator (e.g., "1234,56" -> 1234.56)
+                        "${parts[0]}.${parts[1]}".toDouble()
+                    } else {
+                        // Comma as thousands separator
+                        cleanStr.replace(",", "").toDouble()
+                    }
+                }
+                // Handle period
+                cleanStr.contains(".") -> {
+                    val parts = cleanStr.split(".")
+                    if (parts.size == 2 && parts[1].length == 3) {
+                        // Period as thousands separator (e.g., "1.234" -> 1234)
+                        cleanStr.replace(".", "").toDouble()
+                    } else {
+                        // Period as decimal separator
+                        cleanStr.toDouble()
+                    }
+                }
+                // Simple integer
+                else -> cleanStr.toDouble()
+            }
+        } catch (e: Exception) {
+            logger.warning("Price parsing error: ${e.message}")
+            Double.POSITIVE_INFINITY
+        }
     }
     
     private fun findNestedAttribute(data: JsonElement?, keys: List<String>): JsonElement? {
