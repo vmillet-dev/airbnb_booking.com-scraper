@@ -15,24 +15,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def fetch_html_from_url(final_url):
-    """Fetch HTML content from the final URL using Bright Data's API as a proxy with headers and cookies."""
+    """Fetch HTML content directly from the final URL without using a proxy."""
 
-    url = "https://api.brightdata.com/request"
-
-    payload = {
-        "format": "raw",
-        "url": final_url,
-        "zone": "web_unlocker1",
-        "method": "GET",
-        "country": "EU"
-    }
     headers = {
-        "Authorization": "Bearer b2aa68b26120098e1d70492b6e9abdf36bed43e0ec54e8961a52f4cf8ae1d91b",
-        "Content-Type": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
-    response = requests.request("POST", url, json=payload, headers=headers)
-    print(f"Response Status: {response.status_code}")  # Added print statement
-    return response.text
+
+    try:
+        response = requests.get(final_url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        return response.text
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
 
 
 def find_results_in_json(data):
