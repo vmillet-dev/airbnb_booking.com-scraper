@@ -22,9 +22,9 @@ object HttpClient {
             level = LogLevel.INFO
         }
         install(HttpTimeout) {
-            requestTimeoutMillis = 10000L
-            connectTimeoutMillis = 10000L
-            socketTimeoutMillis = 10000L
+            requestTimeoutMillis = 30000L
+            connectTimeoutMillis = 30000L
+            socketTimeoutMillis = 30000L
         }
         engine {
             requestTimeout = 10000L // 10 seconds

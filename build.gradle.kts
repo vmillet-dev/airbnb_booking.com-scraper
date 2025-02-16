@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set(System.getProperty("mainClass") ?: "com.leboncoin.api.TestSearchKt")
+    mainClass.set(System.getProperty("mainClass") ?: "com.leboncoin.api.RunAirbnbTestKt")
 }
 
 group = "com.leboncoin.api"
