@@ -20,5 +20,9 @@ fun main() = runBlocking {
     val search = Search()
     val result = search.searchProperties(request)
     println("Response:")
-    println(Json { prettyPrint = true }.encodeToString(result))
+    println(Json { 
+        prettyPrint = true 
+        encodeDefaults = true
+        explicitNulls = false
+    }.encodeToString(result))
 }

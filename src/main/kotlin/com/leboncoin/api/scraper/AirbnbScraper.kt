@@ -10,18 +10,18 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.jsoup.Jsoup
 import com.leboncoin.api.models.*
-import com.leboncoin.api.utils.*
+import com.leboncoin.api.utils.Logger
+import com.leboncoin.api.utils.DataUtils
+import com.leboncoin.api.utils.EmptyListing
+import io.ktor.client.plugins.*
 
 class AirbnbScraper(private val client: HttpClient) {
     companion object {
-        private val logger = Logger
-        
         private val HEADERS = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language" to "en-US,en;q=0.9",
             "Accept-Encoding" to "gzip, deflate, br"
         )
-        
         private val PROPERTY_TYPE_MAPPING = mapOf(
             "apartment" to "3",
             "house" to "1",
@@ -29,7 +29,7 @@ class AirbnbScraper(private val client: HttpClient) {
             "hotel" to "4"
         )
     }
-    
+
     suspend fun search(filters: PropertySearchRequest): Map<String, PropertyListing?> {
         return try {
             val baseUrl = buildUrl(filters)
@@ -45,33 +45,15 @@ class AirbnbScraper(private val client: HttpClient) {
                 if (cheapest != null) {
                     mapOf("cheapest" to cheapest)
                 } else {
-                    mapOf("cheapest" to PropertyListing(
-                        listingId = "",
-                        name = "No listings found",
-                        title = "No listings found",
-                        averageRating = "0.0",
-                        totalPrice = "0",
-                        picture = "",
-                        website = "airbnb",
-                        price = 0.0
-                    ))
+                    mapOf("cheapest" to EmptyListing.create("airbnb"))
                 }
             }
         } catch (e: Exception) {
-            logger.error("Critical error in bot execution: ${e.message}")
-            mapOf("error" to PropertyListing(
-                listingId = "",
-                name = "Error: ${e.message}",
-                title = "Error: ${e.message}",
-                averageRating = "0.0",
-                totalPrice = "0",
-                picture = "",
-                website = "airbnb",
-                price = 0.0
-            ))
+            Logger.error("Critical error in bot execution: ${e.message}")
+            mapOf("cheapest" to EmptyListing.create("airbnb"))
         }
     }
-    
+
     private suspend fun fetchListings(url: String): List<PropertyListing> {
         return try {
             val html = fetchListingsHtml(url)
@@ -81,31 +63,33 @@ class AirbnbScraper(private val client: HttpClient) {
                 emptyList()
             }
         } catch (e: Exception) {
-            logger.error("Critical fetch failure: ${e.message}")
+            Logger.error("Critical fetch failure: ${e.message}")
             emptyList()
         }
     }
-    
+
     private suspend fun fetchListingsHtml(url: String): String? {
         return try {
             client.get(url) {
-                HEADERS.forEach { (key, value) ->
-                    headers.append(key, value)
+                headers {
+                    HEADERS.forEach { (key, value) ->
+                        append(key, value)
+                    }
                 }
             }.bodyAsText()
         } catch (e: Exception) {
             when (e) {
-                is io.ktor.client.plugins.HttpRequestTimeoutException -> {
-                    logger.warning("Request timed out after 10 seconds - no content received")
+                is HttpRequestTimeoutException -> {
+                    Logger.warning("Request timed out after 10 seconds - no content received")
                 }
                 else -> {
-                    logger.error("Request failed: ${e.message}")
+                    Logger.error("Request failed: ${e.message}")
                 }
             }
             null
         }
     }
-    
+
     private fun extractListingData(html: String): List<PropertyListing> {
         val soup = Jsoup.parse(html)
         var listingData = emptyList<PropertyListing>()
@@ -117,7 +101,7 @@ class AirbnbScraper(private val client: HttpClient) {
                 listingData = extractFromNiobeData(scriptData)
                 if (listingData.isNotEmpty()) return listingData
             } catch (e: Exception) {
-                logger.warning("Failed to parse official JSON data: ${e.message}")
+                Logger.warning("Failed to parse official JSON data: ${e.message}")
             }
         }
         
@@ -129,7 +113,7 @@ class AirbnbScraper(private val client: HttpClient) {
                     listingData = extractFromNiobeData(scriptData)
                     if (listingData.isNotEmpty()) return listingData
                 } catch (e: Exception) {
-                    logger.warning("Failed to parse alternative JSON data: ${e.message}")
+                    Logger.warning("Failed to parse alternative JSON data: ${e.message}")
                 }
             }
         }
@@ -141,7 +125,7 @@ class AirbnbScraper(private val client: HttpClient) {
         
         return listingData
     }
-    
+
     private fun extractFromNiobeData(scriptData: JsonElement): List<PropertyListing> {
         val listings = mutableListOf<PropertyListing>()
         
@@ -163,7 +147,7 @@ class AirbnbScraper(private val client: HttpClient) {
                             ?.jsonPrimitive?.content
                         
                         if (totalPriceStr == null) {
-                            logger.warning("Price not found in the JSON structure")
+                            Logger.warning("Price not found in the JSON structure")
                             continue
                         }
                         
@@ -176,7 +160,7 @@ class AirbnbScraper(private val client: HttpClient) {
                         
                         val currencySymbol = if (totalPriceStr.contains("€")) "€" else "$"
                         val formattedDiscountedPrice = if (discountedPrice != Double.POSITIVE_INFINITY) {
-                            "$currencySymbol%.2f".format(discountedPrice)
+                            "$currencySymbol${String.format("%.2f", discountedPrice).replace(",", ".")}"
                         } else {
                             totalPriceStr.ifEmpty { "N/A" }
                         }
@@ -193,27 +177,32 @@ class AirbnbScraper(private val client: HttpClient) {
                             listingType = listing["listingObjType"]?.jsonPrimitive?.content,
                             name = listing["name"]?.jsonPrimitive?.content ?: "",
                             title = listing["title"]?.jsonPrimitive?.content ?: "",
-                            averageRating = result["avgRatingLocalized"]?.jsonPrimitive?.content ?: "0.0",
+                            averageRating = (result["avgRatingLocalized"]?.jsonPrimitive?.content?.let { rating ->
+                                val reviewCount = result["reviewsCount"]?.jsonPrimitive?.content ?: "0"
+                                rating.replace(".", ",") + " ($reviewCount)"
+                            } ?: "0,0"),
                             discountedPrice = "",
                             originalPrice = "",
                             totalPrice = formattedDiscountedPrice,
                             picture = pictureUrl ?: "",
                             website = "airbnb",
                             price = discountedPrice,
-                            listingUrl = "https://www.airbnb.es/rooms/${listing["id"]?.jsonPrimitive?.content}"
+                            listingUrl = listing["id"]?.jsonPrimitive?.content?.let { id ->
+                                "https://www.airbnb.es/rooms/$id"
+                            }
                         ))
                     } catch (e: Exception) {
-                        logger.warning("Error processing listing: ${e.message}")
+                        Logger.warning("Error processing listing: ${e.message}")
                     }
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error extracting from Niobe data: ${e.message}")
+            Logger.error("Error extracting from Niobe data: ${e.message}")
         }
         
         return listings
     }
-    
+
     private fun extractFromHtml(soup: org.jsoup.nodes.Document): List<PropertyListing> {
         val listings = mutableListOf<PropertyListing>()
         
@@ -227,9 +216,12 @@ class AirbnbScraper(private val client: HttpClient) {
                     
                     listings.add(PropertyListing(
                         listingId = listingId,
+                        listingType = null,
                         name = name,
                         title = name,
-                        averageRating = "0.0",
+                        averageRating = "0,0",
+                        discountedPrice = "",
+                        originalPrice = "",
                         totalPrice = totalPrice,
                         picture = "",
                         website = "airbnb",
@@ -237,16 +229,16 @@ class AirbnbScraper(private val client: HttpClient) {
                         listingUrl = if (url.startsWith("http")) url else "https://www.airbnb.es$url"
                     ))
                 } catch (e: Exception) {
-                    logger.warning("HTML fallback parse error: ${e.message}")
+                    Logger.warning("HTML fallback parse error: ${e.message}")
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error parsing HTML: ${e.message}")
+            Logger.error("Error parsing HTML: ${e.message}")
         }
         
         return listings
     }
-    
+
     private fun parsePrice(priceStr: String?): Double {
         if (priceStr.isNullOrEmpty()) return Double.POSITIVE_INFINITY
         
@@ -292,11 +284,11 @@ class AirbnbScraper(private val client: HttpClient) {
                 else -> cleanStr.toDouble()
             }
         } catch (e: Exception) {
-            logger.warning("Price parsing error: ${e.message}")
+            Logger.warning("Price parsing error: ${e.message}")
             Double.POSITIVE_INFINITY
         }
     }
-    
+
     private fun findNestedAttribute(data: JsonElement?, keys: List<String>): JsonElement? {
         if (data == null || keys.isEmpty()) return null
         
@@ -316,7 +308,7 @@ class AirbnbScraper(private val client: HttpClient) {
             else -> null
         }
     }
-    
+
     private fun buildUrl(filters: PropertySearchRequest): String {
         // Base URL and destination
         val baseUrl = "https://www.airbnb.es/s/${filters.destination.trim('`')}/homes?"

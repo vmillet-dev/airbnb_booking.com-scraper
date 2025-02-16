@@ -3,6 +3,7 @@ package com.leboncoin.api.scraper
 import com.leboncoin.api.models.*
 import com.leboncoin.api.utils.Logger
 import com.leboncoin.api.utils.HtmlUtils
+import com.leboncoin.api.utils.EmptyListing
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -14,20 +15,6 @@ import kotlin.math.round
 
 class BookingScraper(private val client: HttpClient) {
     companion object {
-        private fun createEmptyListing() = PropertyListing(
-            listingId = "",
-            name = "No listings found",
-            title = "No listings found",
-            averageRating = "0,0",
-            totalPrice = "0",
-            picture = "",
-            website = "booking",
-            price = 0.0,
-            listingType = null,
-            discountedPrice = "",
-            originalPrice = "",
-            listingUrl = null
-        )
         private const val BASE_URL = "https://www.booking.com/searchresults.html?aid=817353"
         private val HEADERS = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -39,11 +26,10 @@ class BookingScraper(private val client: HttpClient) {
     private suspend fun fetchHtmlFromUrl(url: String): String? {
         return try {
             val response = client.get(url) {
-                HEADERS.forEach { (key, value) -> 
-                    headers.append(key, value)
-                }
-                timeout {
-                    requestTimeoutMillis = 10000
+                headers {
+                    HEADERS.forEach { (key, value) -> 
+                        append(key, value)
+                    }
                 }
             }
             response.bodyAsText()
@@ -159,7 +145,7 @@ class BookingScraper(private val client: HttpClient) {
             }
             
             val finalUrl = "$BASE_URL&$queryString&selected_currency=EUR&ucfs=1&arphpl=1"
-            val html = fetchHtmlFromUrl(finalUrl) ?: return mapOf("cheapest" to createEmptyListing())
+            val html = fetchHtmlFromUrl(finalUrl) ?: return mapOf("cheapest" to EmptyListing.create("booking"))
             
             val listings = parseHtmlAndExtractResults(html)
             val cheapest = listings.minByOrNull { it.price }
@@ -172,7 +158,7 @@ class BookingScraper(private val client: HttpClient) {
                 ))
             }
             
-            return mapOf("cheapest" to createEmptyListing())
+            return mapOf("cheapest" to EmptyListing.create("booking"))
             
         } catch (e: Exception) {
             Logger.error("Error in booking search: ${e.message}")
