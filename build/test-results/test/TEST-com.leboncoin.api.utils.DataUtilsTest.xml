@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.leboncoin.api.utils.DataUtilsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-02-16T14:15:09" hostname="devin-box" time="0.171">
+  <properties/>
+  <testcase name="testFindNestedAttribute" classname="com.leboncoin.api.utils.DataUtilsTest" time="0.137"/>
+  <testcase name="testExtractTaxAmount" classname="com.leboncoin.api.utils.DataUtilsTest" time="0.013"/>
+  <testcase name="testParsePriceWithEuropeanFormat" classname="com.leboncoin.api.utils.DataUtilsTest" time="0.008"/>
+  <testcase name="testSafeGet" classname="com.leboncoin.api.utils.DataUtilsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

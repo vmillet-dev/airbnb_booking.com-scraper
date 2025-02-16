@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.leboncoin.api.utils.HtmlUtilsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2025-02-16T14:15:10" hostname="devin-box" time="0.375">
+  <properties/>
+  <testcase name="testExtractJsonFromScript" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.107"/>
+  <testcase name="testExtractJsonFromScriptWithMalformedJson" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.257"/>
+  <testcase name="testExtractJsonFromScriptWithInvalidJson" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.003"/>
+  <testcase name="testExtractJsonFromScriptByAttribute" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.005"/>
+  <testcase name="testExtractJsonFromScriptWithMissingScript" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.0"/>
+  <testcase name="testExtractJsonFromScriptWithEmptyContent" classname="com.leboncoin.api.utils.HtmlUtilsTest" time="0.003"/>
+  <system-out><![CDATA[14:15:10.431 [Test worker] WARN  PropertyScraper - Failed to parse JSON from script#data-deferred-state-0: Unexpected JSON token at offset 16: Trailing comma before the end of JSON object at path: $
+Trailing commas are non-complaint JSON and not allowed by default. Use 'allowTrailingCommas = true' in 'Json {}' builder to support them.
+JSON input: {"test": "value",}
+14:15:10.437 [Test worker] WARN  PropertyScraper - Invalid JSON format in script#data-deferred-state-0
+14:15:10.445 [Test worker] WARN  PropertyScraper - Invalid JSON format in script#data-deferred-state-0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

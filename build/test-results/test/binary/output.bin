@@ -1,0 +1,8 @@
+	
+Ç14:15:10.431 [Test worker] WARN  PropertyScraper - Failed to parse JSON from script#data-deferred-state-0: Unexpected JSON token at offset 16: Trailing comma before the end of JSON object at path: $
+	
+ŠTrailing commas are non-complaint JSON and not allowed by default. Use 'allowTrailingCommas = true' in 'Json {}' builder to support them.
+	
+JSON input: {"test": "value",}
+	g14:15:10.437 [Test worker] WARN  PropertyScraper - Invalid JSON format in script#data-deferred-state-0
+	g14:15:10.445 [Test worker] WARN  PropertyScraper - Invalid JSON format in script#data-deferred-state-0
