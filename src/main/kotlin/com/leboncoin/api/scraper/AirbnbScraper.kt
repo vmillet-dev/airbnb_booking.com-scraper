@@ -31,11 +31,84 @@ class AirbnbScraper(private val client: HttpClient) {
     }
     
     suspend fun search(filters: PropertySearchRequest): Map<String, PropertyListing?> {
-        TODO("Not yet implemented")
+        return try {
+            val baseUrl = buildUrl(filters)
+            val cursorUrl = "$baseUrl&cursor=eyJzZWN0aW9uX29mZnNldCI6MCwiaXRlbXNfb2Zmc2V0IjoxOCwidmVyc2lvbiI6MX0%3D"
+            
+            coroutineScope {
+                val results = listOf(
+                    async { fetchListings(baseUrl) },
+                    async { fetchListings(cursorUrl) }
+                ).awaitAll().flatten()
+                
+                val cheapest = results.minByOrNull { it.price }
+                if (cheapest != null) {
+                    mapOf("cheapest" to cheapest)
+                } else {
+                    mapOf("cheapest" to PropertyListing(
+                        listingId = "",
+                        name = "No listings found",
+                        title = "No listings found",
+                        averageRating = "0.0",
+                        totalPrice = "0",
+                        picture = "",
+                        website = "airbnb",
+                        price = 0.0
+                    ))
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Critical error in bot execution: ${e.message}")
+            mapOf("error" to PropertyListing(
+                listingId = "",
+                name = "Error: ${e.message}",
+                title = "Error: ${e.message}",
+                averageRating = "0.0",
+                totalPrice = "0",
+                picture = "",
+                website = "airbnb",
+                price = 0.0
+            ))
+        }
+    }
+    
+    private suspend fun fetchListings(url: String): List<PropertyListing> {
+        return try {
+            val html = fetchListingsHtml(url)
+            if (html != null) {
+                extractListingData(html)
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.error("Critical fetch failure: ${e.message}")
+            emptyList()
+        }
     }
     
     private suspend fun fetchListingsHtml(url: String): String? {
-        TODO("Not yet implemented")
+        return try {
+            client.get(url) {
+                HEADERS.forEach { (key, value) ->
+                    headers.append(key, value)
+                }
+                timeout {
+                    requestTimeoutMillis = 10000
+                    connectTimeoutMillis = 10000
+                    socketTimeoutMillis = 10000
+                }
+            }.bodyAsText()
+        } catch (e: Exception) {
+            when (e) {
+                is io.ktor.client.plugins.HttpRequestTimeoutException -> {
+                    logger.warning("Request timed out after 10 seconds - no content received")
+                }
+                else -> {
+                    logger.error("Request failed: ${e.message}")
+                }
+            }
+            null
+        }
     }
     
     private fun extractListingData(html: String): List<PropertyListing> {
